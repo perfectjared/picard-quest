@@ -393,21 +393,26 @@ function openTunnel() {
 }
 
 function updateEnemies() {
-    // Update Q sound timer
-    gameState.qSoundTimer++;
-    if (gameState.qSoundTimer >= gameState.qSoundInterval) {
+    // Update Q sound timer - only if enemies are alive
+    if (gameState.enemies.length > 0) {
+        gameState.qSoundTimer++;
+        if (gameState.qSoundTimer >= gameState.qSoundInterval) {
+            gameState.qSoundTimer = 0;
+            
+            // Play random Q sound clip
+            const qSounds = [
+                'assets/Q _I suggest you change attitude_.WAV',
+                'assets/Q _Savage life forms_.WAV',
+                'assets/Q _So be it fools_.WAV',
+                'assets/Q _Your time is up captain_.WAV'
+            ];
+            
+            const randomSound = qSounds[Math.floor(Math.random() * qSounds.length)];
+            playSound(randomSound);
+        }
+    } else {
+        // Reset timer when no enemies are alive
         gameState.qSoundTimer = 0;
-        
-        // Play random Q sound clip
-        const qSounds = [
-            'assets/Q _I suggest you change attitude_.WAV',
-            'assets/Q _Savage life forms_.WAV',
-            'assets/Q _So be it fools_.WAV',
-            'assets/Q _Your time is up captain_.WAV'
-        ];
-        
-        const randomSound = qSounds[Math.floor(Math.random() * qSounds.length)];
-        playSound(randomSound);
     }
     
     console.log('Updating', gameState.enemies.length, 'enemies');
