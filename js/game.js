@@ -1,21 +1,12 @@
 // Game state
 const gameState = {
     player: {
-        x: 8,
-        y: 8,
-        z: 1,
-        angle: 0,
-        speed: 0.1,
-        rotSpeed: 0.05,
-        // Add velocity for momentum
-        velocityX: 0,
-        velocityY: 0,
-        maxSpeed: 0.15,
-        acceleration: 0.1,
-        friction: 0.85
+        x: 8, y: 8, z: 1, angle: 0,
+        velocityX: 0, velocityY: 0,
+        maxSpeed: 0.15, acceleration: 0.1, friction: 0.85, rotSpeed: 0.05
     },
     
-    // One big room with elevator at the end
+    // Single room map with elevator at end
     map: [
         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
         [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -34,127 +25,84 @@ const gameState = {
         [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     ],
-    mapWidth: 16,
-    mapHeight: 16,
+    mapWidth: 16, mapHeight: 16,
     
-    keys: {},
+    // Game systems
+    enemies: [], tunnelOpen: false,
     
-    // Enemy system
-    enemies: [],
-    
-    // Tunnel system
-    tunnelOpen: false,
-    
-    // Intro sequence state
+    // Intro sequence
     introState: 'intro', // 'intro', 'waiting', 'fading', 'game'
-    introTimer: 0,
-    fadeAlpha: 1.0,
-    starLines: [],
-    textAlpha: 0.0,
-    textTimer: 0,
+    introTimer: 0, fadeAlpha: 1.0, starLines: [],
+    textAlpha: 0.0, textTimer: 0,
     
-    // Elevator flashing state
-    elevatorFlashTimer: 0,
-    elevatorFlashState: false, // true = gold, false = grey
+    // Elevator system
+    elevatorFlashTimer: 0, elevatorFlashState: false,
     
-    // Ending sequence state
+    // Ending sequence
     endingState: 'none', // 'none', 'fading', 'video'
-    endingFadeAlpha: 0.0,
-    endingVideo: null,
+    endingFadeAlpha: 0.0, endingVideo: null,
     
     // Q sound system
-    qSoundTimer: 0, // Timer for Q sound clips
-    qSoundInterval: 180 // 3 seconds at 60fps
+    qSoundTimer: 0, qSoundInterval: 180 // 3 seconds at 60fps
 };
 
 // Global keyboard state
 const keyboardState = {
-    W: false,
-    A: false,
-    S: false,
-    D: false,
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false
+    W: false, A: false, S: false, D: false,
+    ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false
 };
 
-// Three.js setup
-let scene, camera, renderer, walls = [];
-let projectiles = [];
-let enemies = [];
-let tunnelWalls = [];
-let elevator = null; // Global elevator reference
+// Three.js globals
+let scene, camera, renderer, walls = [], projectiles = [], enemies = [], elevator = null;
 
 function initThreeJS() {
     console.log('Initializing Three.js...');
     
-    // Ensure UI elements are visible when game starts
-    const crosshair = document.getElementById('crosshair');
-    const weaponSprite = document.getElementById('weapon-sprite');
-    const picardPortrait = document.getElementById('picard-portrait');
+    // Show UI elements
+    ['crosshair', 'weapon-sprite', 'picard-portrait'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.style.display = id === 'crosshair' ? 'block' : 'flex';
+    });
     
-    if (crosshair) crosshair.style.display = 'block';
-    if (weaponSprite) weaponSprite.style.display = 'flex';
-    if (picardPortrait) picardPortrait.style.display = 'flex';
-    
-    // Create scene
+    // Create scene and camera
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x333333);
     
-    // Create camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(gameState.player.x, gameState.player.z, gameState.player.y);
     
-    // Set initial camera look direction
+    // Set initial camera direction
     const lookX = gameState.player.x + Math.cos(gameState.player.angle);
     const lookY = gameState.player.y + Math.sin(gameState.player.angle);
     camera.lookAt(lookX, gameState.player.z, lookY);
     
-    // Create renderer
+    // Create renderer with retro settings
     renderer = new THREE.WebGLRenderer({ 
         canvas: document.getElementById('three-canvas'),
-        antialias: false, // Disable antialiasing for pixelated look
-        powerPreference: "high-performance"
+        antialias: false, powerPreference: "high-performance"
     });
     
-    // Set lower resolution for retro look
-    const pixelRatio = 0.5; // Half resolution
-    renderer.setPixelRatio(pixelRatio);
+    renderer.setPixelRatio(0.5); // Half resolution for retro look
     renderer.setSize(window.innerWidth, window.innerHeight);
-    
-    // Reduce color depth and add retro effects
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.NoToneMapping;
-    renderer.shadowMap.enabled = false; // Disable shadows for flat retro look
-    
-    // Additional retro settings
-    renderer.autoClear = true;
-    renderer.sortObjects = false; // Disable depth sorting for retro look
-    
-    // Set canvas ID for CSS targeting
+    renderer.shadowMap.enabled = false;
+    renderer.sortObjects = false;
     renderer.domElement.id = 'three-canvas';
     
-    // Add retro pixelated CSS styling
+    // Add retro CSS styling
     renderer.domElement.style.imageRendering = 'pixelated';
-    renderer.domElement.style.imageRendering = '-moz-crisp-edges';
-    renderer.domElement.style.imageRendering = 'crisp-edges';
     
-    // Add bright, flat lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
-    
+    // Add lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
     directionalLight.position.set(8, 10, 8);
-    directionalLight.castShadow = false; // Disable shadows for flatter lighting
     scene.add(directionalLight);
     
-    // Create world geometry
+    // Create world
     createWorld();
     
     console.log('Three.js initialized');
-    console.log('Initial player position:', gameState.player.x, gameState.player.y, gameState.player.z);
-    console.log('Initial camera position:', camera.position.x, camera.position.y, camera.position.z);
 }
 
 function createWorld() {
@@ -162,20 +110,19 @@ function createWorld() {
     walls.forEach(wall => scene.remove(wall));
     walls = [];
     
-    // Create floor
+    // Create floor and ceiling
     const floorGeometry = new THREE.PlaneGeometry(gameState.mapWidth, gameState.mapHeight);
-    const floorMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x1e3a8a // Dark blue color for floor
-    });
-    applyRetroEffect(floorMaterial); // Apply retro effect
+    const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x1e3a8a }); // Dark blue
+    const ceilingMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
+    
+    applyRetroEffect(floorMaterial);
+    applyRetroEffect(ceilingMaterial);
+    
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.position.set(gameState.mapWidth / 2, 0, gameState.mapHeight / 2);
     scene.add(floor);
     
-    // Create ceiling
-    const ceilingMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
-    applyRetroEffect(ceilingMaterial); // Apply retro effect
     const ceiling = new THREE.Mesh(floorGeometry, ceilingMaterial);
     ceiling.rotation.x = Math.PI / 2;
     ceiling.position.set(gameState.mapWidth / 2, 3, gameState.mapHeight / 2);
@@ -183,8 +130,8 @@ function createWorld() {
     
     // Create walls based on map
     const wallGeometry = new THREE.BoxGeometry(1, 3, 1);
-    const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xf5f5dc }); // Beige color for walls
-    applyRetroEffect(wallMaterial); // Apply retro effect
+    const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xf5f5dc }); // Beige
+    applyRetroEffect(wallMaterial);
     
     for (let y = 0; y < gameState.mapHeight; y++) {
         for (let x = 0; x < gameState.mapWidth; x++) {
@@ -199,74 +146,91 @@ function createWorld() {
     
     console.log('World created with', walls.length, 'walls');
     
-    // Create enemies
+    // Create game objects
     createEnemies();
-    
-    // Create tunnel (initially closed)
-    createTunnel();
-    
-    // Create elevator (grey wall at the end of the room)
     createElevator();
-    
-    // Remove door system - back to single room
 }
 
 function playSound(soundFile) {
     const audio = new Audio(soundFile);
-    audio.volume = 0.1; // Set volume to 10% (even quieter)
+    audio.volume = 0.02; // 2% volume (much quieter)
     audio.play().catch(e => console.log('Audio play failed:', e));
 }
 
-function createProjectile() {
-    console.log('createProjectile() called');
+function quantizeColor(color, levels = 8) {
+    const r = Math.floor(color.r * levels) / levels;
+    const g = Math.floor(color.g * levels) / levels;
+    const b = Math.floor(color.b * levels) / levels;
+    return new THREE.Color(r, g, b);
+}
+
+function applyRetroEffect(material) {
+    if (material.color) {
+        material.color = quantizeColor(material.color, 6);
+    }
+}
+
+function canMoveTo(x, y) {
+    const playerRadius = 1.0;
+    const checkPoints = [
+        { x, y }, // Center
+        { x: x + playerRadius, y }, // Right
+        { x: x - playerRadius, y }, // Left
+        { x, y: y + playerRadius }, // Forward
+        { x, y: y - playerRadius }, // Backward
+        { x: x + playerRadius * 0.7, y: y + playerRadius * 0.7 }, // Diagonals
+        { x: x - playerRadius * 0.7, y: y + playerRadius * 0.7 },
+        { x: x + playerRadius * 0.7, y: y - playerRadius * 0.7 },
+        { x: x - playerRadius * 0.7, y: y - playerRadius * 0.7 }
+    ];
     
-    // Play phaser sound
+    for (const point of checkPoints) {
+        const mapX = Math.floor(point.x);
+        const mapY = Math.floor(point.y);
+        
+        if (mapX < 0 || mapX >= gameState.mapWidth || mapY < 0 || mapY >= gameState.mapHeight) {
+            return false;
+        }
+        
+        if (gameState.map[mapY][mapX] === 1) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function createProjectile() {
     playSound('assets/tng_phaser3_clean.mp3');
     
-    // Calculate the direction vector from player's angle
+    // Calculate direction from player's angle
     const directionX = Math.cos(gameState.player.angle);
     const directionY = Math.sin(gameState.player.angle);
     
-    // Start position (camera position)
-    const startX = gameState.player.x;
-    const startY = gameState.player.y;
-    const startZ = gameState.player.z;
-    
-    // Create projectile geometry and material
-    const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.8); // Long, flat rectangle (rotated 90 degrees)
+    // Create projectile
+    const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.8);
     const material = new THREE.MeshBasicMaterial({ 
-        color: 0xffff00, // Yellow projectile
-        transparent: false,
-        opacity: 1.0
+        color: 0xffff00, transparent: false, opacity: 1.0
     });
-    applyRetroEffect(material); // Apply retro effect
+    applyRetroEffect(material);
     
-    // Create the projectile mesh
     const projectile = new THREE.Mesh(geometry, material);
-    projectile.position.set(startX, startZ, startY);
-    
-    // Rotate projectile to face the direction it's traveling
-    // The projectile geometry is long in Z direction, so we need to rotate it to face the player's angle
+    projectile.position.set(gameState.player.x, gameState.player.z, gameState.player.y);
     projectile.rotation.y = gameState.player.angle;
     
-    // Add velocity and direction properties to the projectile
-    projectile.velocityX = directionX * 0.5 * 0.3; // 30% speed
+    // Set velocity (30% speed)
+    projectile.velocityX = directionX * 0.5 * 0.3;
     projectile.velocityY = directionY * 0.5 * 0.3;
     projectile.velocityZ = 0;
-    projectile.life = 60; // Frames the projectile will live (60 frames = 1 second at 60fps)
     
     // Physics properties
-    projectile.hasPhysics = false; // Start without physics
-    projectile.physicsTimer = 0; // Timer for physics-based projectiles
-    projectile.gravity = 0.01; // Gravity for falling
-    projectile.physicsVelocityY = 0; // Vertical velocity for physics (separate from movement velocityY)
+    projectile.hasPhysics = false;
+    projectile.physicsTimer = 0;
+    projectile.gravity = 0.01;
+    projectile.physicsVelocityY = 0;
     
-    // Add to scene and projectiles array
     scene.add(projectile);
     projectiles.push(projectile);
-    
-    console.log('Projectile created at', startX.toFixed(2), startY.toFixed(2), 'with velocity', projectile.velocityX.toFixed(2), projectile.velocityY.toFixed(2));
-    console.log('Scene has', scene.children.length, 'children');
 }
 
 function createEnemies() {
@@ -275,131 +239,90 @@ function createEnemies() {
     enemies = [];
     gameState.enemies = [];
     
-    // Create 5 enemies in the single room
+    const qClipAssets = ['assets/q-clip-1.mp4', 'assets/q-clip-2.mp4', 'assets/q-clip-3.mp4'];
+    
+    // Create 5 enemies
     for (let i = 0; i < 5; i++) {
-        let x, y;
-        let attempts = 0;
+        let x, y, attempts = 0;
         
-        // Spawn enemies in the single room (0-15 x 0-15)
+        // Find valid spawn position
         do {
             x = Math.random() * 16;
             y = Math.random() * 16;
             attempts++;
-        } while ((canMoveTo(x, y) === false || 
+        } while ((!canMoveTo(x, y) || 
                  Math.abs(x - gameState.player.x) < 2 || 
                  Math.abs(y - gameState.player.y) < 2) && attempts < 50);
         
         if (attempts < 50) {
-            // Create enemy as flat render texture using random q-clip asset
-            const qClipAssets = ['assets/q-clip-1.mp4', 'assets/q-clip-2.mp4', 'assets/q-clip-3.mp4'];
-            const randomAsset = qClipAssets[Math.floor(Math.random() * qClipAssets.length)];
-            
+            // Create video texture
             const video = document.createElement('video');
-            video.src = randomAsset;
-            video.loop = true;
-            video.muted = true;
-            video.autoplay = true;
+            video.src = qClipAssets[Math.floor(Math.random() * qClipAssets.length)];
+            video.loop = video.muted = video.autoplay = true;
             video.crossOrigin = 'anonymous';
             video.playsInline = true;
             
-            // Create video texture
             const enemyTexture = new THREE.VideoTexture(video);
-            enemyTexture.minFilter = THREE.LinearFilter;
-            enemyTexture.magFilter = THREE.LinearFilter;
+            enemyTexture.minFilter = enemyTexture.magFilter = THREE.LinearFilter;
             
-            // Create a plane geometry for the flat enemy
-            const geometry = new THREE.PlaneGeometry(1.5, 1.65); // 66% of 2.5 = 1.65 units tall
+            // Create enemy mesh
+            const geometry = new THREE.PlaneGeometry(1.5, 1.65);
             const material = new THREE.MeshBasicMaterial({ 
-                map: enemyTexture,
-                transparent: true,
-                side: THREE.DoubleSide
+                map: enemyTexture, transparent: true, side: THREE.DoubleSide
             });
             
-            // Create the enemy mesh
             const enemy = new THREE.Mesh(geometry, material);
-            enemy.position.set(x, 0.825, y); // Position lower to ground (half of 1.65 height)
+            enemy.position.set(x, 0.825, y);
             
             // Add enemy properties
-            enemy.velocityX = 0;
-            enemy.velocityY = 0;
-            enemy.moveTimer = Math.random() * 60; // Random initial timer
-            enemy.moveSpeed = 0.01 + Math.random() * 0.015; // Reduced speed between 0.01-0.025
-            enemy.health = 2; // Enemies take 2 hits to kill
-            enemy.hitTimer = 0; // Timer for hit effects
-            enemy.originalColor = enemyTexture; // Store original texture
+            enemy.velocityX = enemy.velocityY = 0;
+            enemy.moveTimer = Math.random() * 60;
+            enemy.moveSpeed = 0.01 + Math.random() * 0.015;
+            enemy.health = 2;
+            enemy.hitTimer = 0;
             
-            // Add to scene and arrays
             scene.add(enemy);
             enemies.push(enemy);
             gameState.enemies.push({
-                mesh: enemy,
-                x: x,
-                y: y,
-                velocityX: 0,
-                velocityY: 0,
+                mesh: enemy, x, y,
+                velocityX: 0, velocityY: 0,
                 moveTimer: enemy.moveTimer,
                 moveSpeed: enemy.moveSpeed,
-                health: 2,
-                hitTimer: 0
+                health: 2, hitTimer: 0
             });
-            
-            console.log('Enemy created in Room 1 at', x.toFixed(2), y.toFixed(2), 'with', randomAsset);
         }
     }
     
     console.log('Created', enemies.length, 'enemies');
-    console.log('Map is now a large open room - you should be able to see enemies wandering around!');
-}
-
-function createTunnel() {
-    console.log('Tunnel system ready - no visual wall, just map-based opening');
 }
 
 function createElevator() {
-    console.log('Creating elevator at the end of the room...');
-    
-    // Create grey elevator wall at the end of the room
     const elevatorGeometry = new THREE.BoxGeometry(1, 3, 1);
     const elevatorMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x888888, // Grey color for elevator
-        transparent: false,
-        opacity: 1.0
+        color: 0x888888, transparent: false, opacity: 1.0
     });
-    applyRetroEffect(elevatorMaterial); // Apply retro effect
+    applyRetroEffect(elevatorMaterial);
     
-    // Create the elevator mesh
     elevator = new THREE.Mesh(elevatorGeometry, elevatorMaterial);
     elevator.position.set(8, 1.5, 14); // At the end of the room
-    
-    // Add to scene
     scene.add(elevator);
-    
-    console.log('Elevator created at the end of the room at position (8, 14)');
 }
 
 function openTunnel() {
-    if (gameState.tunnelOpen) return; // Already open
+    if (gameState.tunnelOpen) return;
     
-    console.log('Opening tunnel...');
-    
-    // Play door sound
     playSound('assets/tng_door_open.mp3');
-    
-    // Update the map to remove the wall at tunnel entrance (15,8)
-    gameState.map[8][15] = 0; // Change from wall (1) to empty (0)
-    
+    gameState.map[8][15] = 0; // Open tunnel entrance
     gameState.tunnelOpen = true;
-    console.log('Tunnel opened! Map updated at position (15,8)');
 }
 
 function updateEnemies() {
-    // Update Q sound timer - only if enemies are alive
+    // Update Q sound timer
     if (gameState.enemies.length > 0) {
         gameState.qSoundTimer++;
         if (gameState.qSoundTimer >= gameState.qSoundInterval) {
             gameState.qSoundTimer = 0;
             
-            // Play random Q sound clip
             const qSounds = [
                 'assets/Q _I suggest you change attitude_.WAV',
                 'assets/Q _Savage life forms_.WAV',
@@ -411,11 +334,10 @@ function updateEnemies() {
             playSound(randomSound);
         }
     } else {
-        // Reset timer when no enemies are alive
         gameState.qSoundTimer = 0;
     }
     
-    console.log('Updating', gameState.enemies.length, 'enemies');
+    // Update each enemy
     gameState.enemies.forEach((enemyData, index) => {
         const enemy = enemyData.mesh;
         
@@ -423,17 +345,14 @@ function updateEnemies() {
         if (enemyData.hitTimer > 0) {
             enemyData.hitTimer--;
             if (enemyData.hitTimer === 0) {
-                // Restore normal appearance
-                enemy.material.color.setHex(0xffffff); // Back to white (video texture)
+                enemy.material.color.setHex(0xffffff);
             }
         }
         
-        // Update move timer
+        // Update movement
         enemyData.moveTimer--;
         
-        // Change direction randomly or to avoid player
         if (enemyData.moveTimer <= 0) {
-            // Calculate distance to player
             const distanceToPlayer = Math.sqrt(
                 Math.pow(enemyData.x - gameState.player.x, 2) + 
                 Math.pow(enemyData.y - gameState.player.y, 2)
@@ -441,16 +360,14 @@ function updateEnemies() {
             
             let angle;
             if (distanceToPlayer < 3) {
-                // Too close to player - move away
+                // Move away from player
                 const awayFromPlayerX = enemyData.x - gameState.player.x;
                 const awayFromPlayerY = enemyData.y - gameState.player.y;
                 angle = Math.atan2(awayFromPlayerY, awayFromPlayerX);
-                console.log('Enemy', index, 'moving away from player');
             } else {
-                // Random movement, but avoid getting too close
+                // Random movement with player avoidance
                 angle = Math.random() * Math.PI * 2;
                 
-                // Check if random direction would bring enemy too close to player
                 const testX = enemyData.x + Math.cos(angle) * enemyData.moveSpeed * 10;
                 const testY = enemyData.y + Math.sin(angle) * enemyData.moveSpeed * 10;
                 const testDistance = Math.sqrt(
@@ -459,69 +376,55 @@ function updateEnemies() {
                 );
                 
                 if (testDistance < 2) {
-                    // Random direction would be too close, move away instead
                     const awayFromPlayerX = enemyData.x - gameState.player.x;
                     const awayFromPlayerY = enemyData.y - gameState.player.y;
                     angle = Math.atan2(awayFromPlayerY, awayFromPlayerX);
-                    console.log('Enemy', index, 'avoiding getting too close to player');
                 }
             }
             
             enemyData.velocityX = Math.cos(angle) * enemyData.moveSpeed;
             enemyData.velocityY = Math.sin(angle) * enemyData.moveSpeed;
-            enemyData.moveTimer = 60 + Math.random() * 120; // 1-3 seconds
-            
-            console.log('Enemy', index, 'changed direction to', enemyData.velocityX.toFixed(3), enemyData.velocityY.toFixed(3));
+            enemyData.moveTimer = 60 + Math.random() * 120;
         }
         
-        // Move enemy
+        // Move enemy with collision detection
         const newX = enemyData.x + enemyData.velocityX;
         const newY = enemyData.y + enemyData.velocityY;
         
-        // Check collision with walls
         if (canMoveTo(newX, enemyData.y)) {
             enemyData.x = newX;
         } else {
-            enemyData.velocityX = -enemyData.velocityX; // Bounce off wall
+            enemyData.velocityX = -enemyData.velocityX;
         }
         
         if (canMoveTo(enemyData.x, newY)) {
             enemyData.y = newY;
         } else {
-            enemyData.velocityY = -enemyData.velocityY; // Bounce off wall
+            enemyData.velocityY = -enemyData.velocityY;
         }
         
-        // Update mesh position
         enemy.position.set(enemyData.x, 0.825, enemyData.y);
-        
-        // Make enemy always face the camera
         enemy.lookAt(camera.position);
     });
     
-    // Check if all enemies are defeated
+    // Check if all enemies defeated
     if (gameState.enemies.length === 0 && !gameState.tunnelOpen) {
         openTunnel();
-        
-        // Start elevator flashing
         gameState.elevatorFlashTimer = 0;
         gameState.elevatorFlashState = false;
     }
     
-    // Update elevator flashing if active
+    // Update elevator flashing
     if (gameState.enemies.length === 0 && elevator) {
         gameState.elevatorFlashTimer++;
         
-        // Flash every 15 frames (quarter second at 60fps)
         if (gameState.elevatorFlashTimer >= 15) {
             gameState.elevatorFlashTimer = 0;
             gameState.elevatorFlashState = !gameState.elevatorFlashState;
             
-            // Change elevator color
-            if (gameState.elevatorFlashState) {
-                elevator.material.color.setHex(0xffd700); // Gold
-            } else {
-                elevator.material.color.setHex(0x888888); // Grey
-            }
+            elevator.material.color.setHex(
+                gameState.elevatorFlashState ? 0xffd700 : 0x888888
+            );
         }
     }
 }
@@ -603,178 +506,94 @@ class InputScene extends Phaser.Scene {
 }
 
 function handleInput() {
-    // Handle rotation (instant, no momentum)
-    if (keyboardState.ARROWLEFT) {
-        gameState.player.angle -= gameState.player.rotSpeed;
-        console.log('Rotating left');
-    }
-    if (keyboardState.ARROWRIGHT) {
-        gameState.player.angle += gameState.player.rotSpeed;
-        console.log('Rotating right');
-    }
+    // Handle rotation
+    if (keyboardState.ARROWLEFT) gameState.player.angle -= gameState.player.rotSpeed;
+    if (keyboardState.ARROWRIGHT) gameState.player.angle += gameState.player.rotSpeed;
     
     // Calculate desired movement direction
-    let desiredVelocityX = 0;
-    let desiredVelocityY = 0;
+    let desiredVelocityX = 0, desiredVelocityY = 0;
     
-    // Forward/Backward movement
     if (keyboardState.ARROWUP || keyboardState.W) {
         desiredVelocityX += Math.cos(gameState.player.angle) * gameState.player.maxSpeed;
         desiredVelocityY += Math.sin(gameState.player.angle) * gameState.player.maxSpeed;
-        console.log('W/Up pressed - desired velocity:', desiredVelocityX.toFixed(3), desiredVelocityY.toFixed(3));
-        
-        // Temporary direct movement test
-        gameState.player.x += Math.cos(gameState.player.angle) * 0.1;
-        gameState.player.y += Math.sin(gameState.player.angle) * 0.1;
-        console.log('DIRECT MOVEMENT TEST - new position:', gameState.player.x.toFixed(2), gameState.player.y.toFixed(2));
     }
     if (keyboardState.ARROWDOWN || keyboardState.S) {
         desiredVelocityX -= Math.cos(gameState.player.angle) * gameState.player.maxSpeed;
         desiredVelocityY -= Math.sin(gameState.player.angle) * gameState.player.maxSpeed;
-        console.log('S/Down pressed - desired velocity:', desiredVelocityX.toFixed(3), desiredVelocityY.toFixed(3));
     }
-    
-    // Strafe movement
     if (keyboardState.A) {
         desiredVelocityX += Math.cos(gameState.player.angle - Math.PI / 2) * gameState.player.maxSpeed;
         desiredVelocityY += Math.sin(gameState.player.angle - Math.PI / 2) * gameState.player.maxSpeed;
-        console.log('A pressed - strafe left');
     }
     if (keyboardState.D) {
         desiredVelocityX += Math.cos(gameState.player.angle + Math.PI / 2) * gameState.player.maxSpeed;
         desiredVelocityY += Math.sin(gameState.player.angle + Math.PI / 2) * gameState.player.maxSpeed;
-        console.log('D pressed - strafe right');
     }
     
-    // Apply acceleration towards desired velocity
+    // Apply acceleration or friction
     if (desiredVelocityX !== 0 || desiredVelocityY !== 0) {
-        // Accelerate towards desired velocity
         gameState.player.velocityX += (desiredVelocityX - gameState.player.velocityX) * gameState.player.acceleration;
         gameState.player.velocityY += (desiredVelocityY - gameState.player.velocityY) * gameState.player.acceleration;
-        console.log('Current velocity:', gameState.player.velocityX.toFixed(3), gameState.player.velocityY.toFixed(3));
     } else {
-        // Apply friction when no keys are pressed
         gameState.player.velocityX *= gameState.player.friction;
         gameState.player.velocityY *= gameState.player.friction;
     }
     
-    // Apply velocity to position with collision detection
-    console.log('Velocity check - X:', gameState.player.velocityX.toFixed(4), 'Y:', gameState.player.velocityY.toFixed(4));
-    
+    // Apply velocity with collision detection
     if (Math.abs(gameState.player.velocityX) > 0.0001 || Math.abs(gameState.player.velocityY) > 0.0001) {
         const newX = gameState.player.x + gameState.player.velocityX;
         const newY = gameState.player.y + gameState.player.velocityY;
         
-        console.log('Attempting to move from', gameState.player.x.toFixed(2), gameState.player.y.toFixed(2), 'to', newX.toFixed(2), newY.toFixed(2));
-        
-        // Try full movement first
         if (canMoveTo(newX, newY)) {
             gameState.player.x = newX;
             gameState.player.y = newY;
-            console.log('Full movement allowed');
         } else {
-            // Try sliding along X axis
+            // Try sliding along walls
             if (canMoveTo(newX, gameState.player.y)) {
                 gameState.player.x = newX;
-                gameState.player.velocityY = 0; // Stop Y velocity on collision
-                console.log('X movement allowed, Y blocked');
+                gameState.player.velocityY = 0;
             } else if (canMoveTo(gameState.player.x, newY)) {
                 gameState.player.y = newY;
-                gameState.player.velocityX = 0; // Stop X velocity on collision
-                console.log('Y movement allowed, X blocked');
-            } else {
-                // Both directions blocked, stop all movement
                 gameState.player.velocityX = 0;
-                gameState.player.velocityY = 0;
-                console.log('Movement blocked in all directions');
+            } else {
+                gameState.player.velocityX = gameState.player.velocityY = 0;
             }
         }
-        
-        console.log('Final position:', gameState.player.x.toFixed(2), gameState.player.y.toFixed(2));
-    } else {
-        console.log('Velocity too small, no movement');
     }
-    
-    // Always update camera when there's any movement or rotation
-    if (Math.abs(gameState.player.velocityX) > 0.001 || Math.abs(gameState.player.velocityY) > 0.001 || 
-        keyboardState.ARROWLEFT || keyboardState.ARROWRIGHT) {
-        console.log('Player position:', gameState.player.x.toFixed(2), gameState.player.y.toFixed(2), 'angle:', gameState.player.angle.toFixed(2));
-        console.log('Camera position:', camera.position.x.toFixed(2), camera.position.y.toFixed(2), camera.position.z.toFixed(2));
-    }
-}
-
-function canMoveTo(x, y) {
-    // 2. Increase wall collision radius for the player
-    const playerRadius = 1.0; // Increased for better wall collision
-    
-    // Check multiple points around the player's position to create a capsule-like collision
-    const checkPoints = [
-        { x: x, y: y }, // Center
-        { x: x + playerRadius, y: y }, // Right
-        { x: x - playerRadius, y: y }, // Left
-        { x: x, y: y + playerRadius }, // Forward
-        { x: x, y: y - playerRadius }, // Backward
-        { x: x + playerRadius * 0.7, y: y + playerRadius * 0.7 }, // Diagonal
-        { x: x - playerRadius * 0.7, y: y + playerRadius * 0.7 }, // Diagonal
-        { x: x + playerRadius * 0.7, y: y - playerRadius * 0.7 }, // Diagonal
-        { x: x - playerRadius * 0.7, y: y - playerRadius * 0.7 }  // Diagonal
-    ];
-    
-    // Check each point for collision
-    for (const point of checkPoints) {
-        const mapX = Math.floor(point.x);
-        const mapY = Math.floor(point.y);
-        
-        // Check bounds for entire map
-        if (mapX < 0 || mapX >= gameState.mapWidth || mapY < 0 || mapY >= gameState.mapHeight) {
-            return false;
-        }
-        
-        // Check if any point hits a wall
-        if (gameState.map[mapY][mapX] === 1) {
-            return false;
-        }
-    }
-    
-    return true;
 }
 
 function updateCamera() {
-    // Update camera position and rotation
     camera.position.set(gameState.player.x, gameState.player.z, gameState.player.y);
     
-    // Look direction
     const lookX = gameState.player.x + Math.cos(gameState.player.angle);
     const lookY = gameState.player.y + Math.sin(gameState.player.angle);
     camera.lookAt(lookX, gameState.player.z, lookY);
 }
 
 function updateProjectiles() {
-    // Update projectile positions and check collisions
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const projectile = projectiles[i];
         
         if (projectile.hasPhysics) {
-            // Apply gravity and physics
-            projectile.physicsVelocityY -= 0.01; // Gravity
+            // Apply physics
+            projectile.physicsVelocityY -= 0.01;
             projectile.position.y += projectile.physicsVelocityY;
             
-            // Apply friction to horizontal movement
             projectile.velocityX *= 0.98;
             projectile.velocityZ *= 0.98;
             
-            // Check floor collision
+            // Floor collision
             if (projectile.position.y <= 0.1) {
                 projectile.position.y = 0.1;
                 projectile.physicsVelocityY = 0;
                 
-                // Add random rotation after hitting floor
+                // Random rotation
                 projectile.rotation.x += (Math.random() - 0.5) * 0.5;
                 projectile.rotation.y += (Math.random() - 0.5) * 0.5;
                 projectile.rotation.z += (Math.random() - 0.5) * 0.5;
             }
             
-            // Check wall collisions
+            // Wall collisions
             const wallCheckRadius = 0.5;
             const projectileX = Math.floor(projectile.position.x);
             const projectileZ = Math.floor(projectile.position.z);
@@ -783,7 +602,6 @@ function updateProjectiles() {
                 projectileZ >= 0 && projectileZ < gameState.mapHeight) {
                 
                 if (gameState.map[projectileZ][projectileX] === 1) {
-                    // Hit wall - bounce
                     if (Math.abs(projectile.position.x - projectileX) < wallCheckRadius) {
                         projectile.velocityX = -projectile.velocityX * 0.5;
                     }
@@ -791,26 +609,18 @@ function updateProjectiles() {
                         projectile.velocityZ = -projectile.velocityZ * 0.5;
                     }
                     
-                    // Add random rotation after hitting wall
+                    // Random rotation
                     projectile.rotation.x += (Math.random() - 0.5) * 0.5;
                     projectile.rotation.y += (Math.random() - 0.5) * 0.5;
                     projectile.rotation.z += (Math.random() - 0.5) * 0.5;
                 }
             }
-            
-            // Remove bullets after 3 seconds in physics mode - REMOVED THIS LINE
-            // if (projectile.physicsTimer > 180) {
-            //     scene.remove(projectile);
-            //     projectiles.splice(i, 1);
-            //     continue;
-            // }
-            // projectile.physicsTimer++;
         } else {
             // Normal projectile movement
             projectile.position.x += projectile.velocityX;
-            projectile.position.z += projectile.velocityY; // Use velocityY for Z movement (this is the direction from player angle)
+            projectile.position.z += projectile.velocityY;
             
-            // Check collision with enemies
+            // Enemy collision
             for (let j = gameState.enemies.length - 1; j >= 0; j--) {
                 const enemyData = gameState.enemies[j];
                 const enemy = enemyData.mesh;
@@ -823,26 +633,21 @@ function updateProjectiles() {
                 if (distance < 1.0) {
                     // Hit enemy
                     enemyData.health--;
-                    enemyData.hitTimer = 30; // 0.5 seconds at 60fps
+                    enemyData.hitTimer = 30;
                     
-                    // Visual hit effect
-                    enemy.material.color.setHex(0xff0000); // Red flash
-                    enemy.position.x += (Math.random() - 0.5) * 0.2; // Vibration
+                    enemy.material.color.setHex(0xff0000);
+                    enemy.position.x += (Math.random() - 0.5) * 0.2;
                     enemy.position.z += (Math.random() - 0.5) * 0.2;
                     
-                    // Play random borg struck sound
                     const borgSounds = ['assets/borg_struck_phaser.mp3', 'assets/borg_struck_phaser_2.mp3'];
                     const randomSound = borgSounds[Math.floor(Math.random() * borgSounds.length)];
                     playSound(randomSound);
                     
                     if (enemyData.health <= 0) {
-                        // Enemy defeated
                         scene.remove(enemy);
                         gameState.enemies.splice(j, 1);
-                        console.log('Enemy defeated! Enemies remaining:', gameState.enemies.length);
                     }
                     
-                    // Enable physics on projectile
                     projectile.hasPhysics = true;
                     projectile.physicsVelocityY = 0;
                     projectile.physicsTimer = 0;
@@ -850,7 +655,7 @@ function updateProjectiles() {
                 }
             }
             
-            // Check collision with walls
+            // Wall collision
             const wallCheckRadius = 0.5;
             const projectileX = Math.floor(projectile.position.x);
             const projectileZ = Math.floor(projectile.position.z);
@@ -859,12 +664,10 @@ function updateProjectiles() {
                 projectileZ >= 0 && projectileZ < gameState.mapHeight) {
                 
                 if (gameState.map[projectileZ][projectileX] === 1) {
-                    // Hit wall - enable physics
                     projectile.hasPhysics = true;
                     projectile.physicsVelocityY = 0;
                     projectile.physicsTimer = 0;
                     
-                    // Add random rotation
                     projectile.rotation.x += (Math.random() - 0.5) * 0.5;
                     projectile.rotation.y += (Math.random() - 0.5) * 0.5;
                     projectile.rotation.z += (Math.random() - 0.5) * 0.5;
@@ -903,39 +706,25 @@ function animate() {
     if (gameState.introState !== 'game') {
         updateIntroSequence();
         renderIntroSequence();
-        return; // Don't run main game logic during intro
+        return;
     }
     
-    handleInput(); // Call handleInput every frame
+    // Update game systems
+    handleInput();
     updateCamera();
-    updateProjectiles(); // Update projectile positions
+    updateProjectiles();
     updateEnemies();
     
-    // Check for elevator collision when it's flashing
+    // Check for elevator collision
     if (gameState.endingState === 'none' && gameState.enemies.length === 0 && elevator) {
         const distanceToElevator = Math.sqrt(
             Math.pow(gameState.player.x - 8, 2) + 
             Math.pow(gameState.player.y - 14, 2)
         );
         
-        // Debug: Log distance and conditions
-        if (gameState.introTimer % 60 === 0) { // Log every 60 frames (1 second)
-            console.log('Elevator collision check:', {
-                playerX: gameState.player.x,
-                playerY: gameState.player.y,
-                distanceToElevator: distanceToElevator,
-                enemiesLength: gameState.enemies.length,
-                endingState: gameState.endingState,
-                elevatorExists: !!elevator
-            });
-        }
-        
-        if (distanceToElevator < 1.5) { // Player is close to elevator
-            console.log('Player entered elevator! Starting ending sequence...');
+        if (distanceToElevator < 1.5) {
             gameState.endingState = 'fading';
             gameState.endingFadeAlpha = 0.0;
-            
-            // Play door close sound
             playSound('assets/tng_door_close.mp3');
         }
     }
@@ -947,16 +736,13 @@ function animate() {
     
     // Render appropriate scene
     if (gameState.endingState === 'video' && gameState.endingVideo) {
-        // Render ending scene with video
         renderer.render(gameState.endingVideo.scene, gameState.endingVideo.camera);
     } else {
-        // Render main game scene
         renderer.render(scene, camera);
     }
     
-    // Render ending fade overlay if active
+    // Render fade overlay if active
     if (gameState.endingState === 'fading' && gameState.endingFadeAlpha > 0) {
-        console.log('Calling renderFadeOverlay from animate loop, fadeAlpha:', gameState.endingFadeAlpha);
         renderFadeOverlay();
     }
 }
@@ -965,27 +751,21 @@ function animate() {
 function updateIntroSequence() {
     gameState.introTimer++;
     
-    // Hide UI elements during intro
-    const crosshair = document.getElementById('crosshair');
-    const weaponSprite = document.getElementById('weapon-sprite');
-    const picardPortrait = document.getElementById('picard-portrait');
-    
-    if (gameState.introState !== 'game') {
-        if (crosshair) crosshair.style.display = 'none';
-        if (weaponSprite) weaponSprite.style.display = 'none';
-        if (picardPortrait) picardPortrait.style.display = 'none';
-    } else {
-        if (crosshair) crosshair.style.display = 'block';
-        if (weaponSprite) weaponSprite.style.display = 'flex';
-        if (picardPortrait) picardPortrait.style.display = 'flex';
-    }
+    // Hide/show UI elements
+    ['crosshair', 'weapon-sprite', 'picard-portrait'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.display = gameState.introState === 'game' ? 
+                (id === 'crosshair' ? 'block' : 'flex') : 'none';
+        }
+    });
     
     switch (gameState.introState) {
         case 'intro':
             // Fade in from black
             gameState.fadeAlpha = Math.max(0, gameState.fadeAlpha - 0.02);
             
-            // Update star lines (move them)
+            // Update star lines
             gameState.starLines.forEach(star => {
                 star.x -= star.speed;
                 if (star.x < -star.length) {
@@ -994,19 +774,19 @@ function updateIntroSequence() {
                 }
             });
             
-            // Start showing text after 2 seconds
+            // Show text after 2 seconds
             if (gameState.introTimer > 120) {
                 gameState.textAlpha = Math.min(1.0, gameState.textAlpha + 0.02);
             }
             
-            // Wait for input after text is fully visible
+            // Wait for input after text is visible
             if (gameState.textAlpha >= 1.0 && gameState.introTimer > 180) {
                 gameState.introState = 'waiting';
             }
             break;
             
         case 'waiting':
-            // Wait for any input (WASD or click)
+            // Wait for any input
             if (keyboardState.w || keyboardState.a || keyboardState.s || keyboardState.d || 
                 keyboardState.ArrowUp || keyboardState.ArrowDown || keyboardState.ArrowLeft || keyboardState.ArrowRight) {
                 gameState.introState = 'fading';
@@ -1019,68 +799,46 @@ function updateIntroSequence() {
             if (gameState.fadeAlpha >= 1.0) {
                 gameState.introState = 'game';
                 
-                // Hide intro canvas
                 const introCanvas = document.getElementById('intro-canvas');
-                if (introCanvas) {
-                    introCanvas.style.display = 'none';
-                }
+                if (introCanvas) introCanvas.style.display = 'none';
                 
-                // Initialize main game
                 initThreeJS();
                 
-                // Ensure UI elements are visible
-                const crosshair = document.getElementById('crosshair');
-                const weaponSprite = document.getElementById('weapon-sprite');
-                const picardPortrait = document.getElementById('picard-portrait');
-                
-                if (crosshair) crosshair.style.display = 'block';
-                if (weaponSprite) weaponSprite.style.display = 'flex';
-                if (picardPortrait) picardPortrait.style.display = 'flex';
+                // Show UI elements
+                ['crosshair', 'weapon-sprite', 'picard-portrait'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.style.display = id === 'crosshair' ? 'block' : 'flex';
+                    }
+                });
             }
             break;
     }
 }
 
 function renderIntroSequence() {
-    // Get or create canvas (only once)
+    // Get or create canvas
     let canvas = document.getElementById('intro-canvas');
     if (!canvas) {
-        console.log('Creating intro canvas for the first time...');
         canvas = document.createElement('canvas');
         canvas.id = 'intro-canvas';
         
-        // Set all styles directly
-        canvas.style.position = 'absolute';
-        canvas.style.top = '0px';
-        canvas.style.left = '0px';
-        canvas.style.zIndex = '5';
-        canvas.style.imageRendering = 'pixelated';
-        canvas.style.pointerEvents = 'none';
-        canvas.style.display = 'block';
-        canvas.style.width = window.innerWidth + 'px';
-        canvas.style.height = window.innerHeight + 'px';
+        Object.assign(canvas.style, {
+            position: 'absolute', top: '0px', left: '0px', zIndex: '5',
+            imageRendering: 'pixelated', pointerEvents: 'none', display: 'block',
+            width: window.innerWidth + 'px', height: window.innerHeight + 'px'
+        });
         
-        // Set canvas dimensions
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         
-        // Add to game container
         const gameContainer = document.getElementById('game-container');
-        if (gameContainer) {
-            gameContainer.appendChild(canvas);
-            console.log('Added intro canvas to game container');
-        } else {
-            document.body.appendChild(canvas);
-            console.log('Added intro canvas to body');
-        }
+        (gameContainer || document.body).appendChild(canvas);
     }
     
-    // Only render if we're still in intro state
-    if (gameState.introState === 'game') {
-        return; // Don't render intro if game has started
-    }
+    if (gameState.introState === 'game') return;
     
-    // Ensure canvas is visible and properly sized
+    // Ensure canvas is visible and sized
     canvas.style.display = 'block';
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -1091,7 +849,7 @@ function renderIntroSequence() {
         return;
     }
     
-    // Fill with black
+    // Draw black background
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -1118,7 +876,7 @@ function renderIntroSequence() {
         const x = canvas.width / 2;
         const y = canvas.height / 2;
         
-        // Add text shadow
+        // Text shadow
         ctx.fillStyle = `rgba(0, 0, 0, ${gameState.textAlpha * 0.5})`;
         ctx.fillText(text, x + 2, y + 2);
         
@@ -1136,47 +894,29 @@ function renderIntroSequence() {
 
 // Ending sequence functions
 function updateEndingSequence() {
-    console.log('updateEndingSequence called, state:', gameState.endingState, 'fadeAlpha:', gameState.endingFadeAlpha);
-    
     // Hide UI elements during ending
-    const crosshair = document.getElementById('crosshair');
-    const weaponSprite = document.getElementById('weapon-sprite');
-    const picardPortrait = document.getElementById('picard-portrait');
-    
-    if (crosshair) crosshair.style.display = 'none';
-    if (weaponSprite) weaponSprite.style.display = 'none';
-    if (picardPortrait) picardPortrait.style.display = 'none';
+    ['crosshair', 'weapon-sprite', 'picard-portrait'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.style.display = 'none';
+    });
     
     switch (gameState.endingState) {
         case 'fading':
-            // Fade to black
             gameState.endingFadeAlpha = Math.min(1.0, gameState.endingFadeAlpha + 0.02);
-            console.log('Fading to black, alpha:', gameState.endingFadeAlpha);
             
             if (gameState.endingFadeAlpha >= 1.0) {
-                // Start video
                 gameState.endingState = 'video';
-                console.log('Fade complete, starting video...');
                 
-                // Remove the fade overlay
                 const fadeOverlay = document.getElementById('fade-overlay');
-                if (fadeOverlay) {
-                    fadeOverlay.remove();
-                    console.log('Removed fade overlay');
-                }
+                if (fadeOverlay) fadeOverlay.remove();
                 
                 createEndingVideo();
             }
             break;
             
         case 'video':
-            // Video is playing, just update the overlay
-            console.log('Video playing...');
-            
-            // Check if video has ended
             if (gameState.endingVideo && gameState.endingVideo.video) {
                 if (gameState.endingVideo.video.ended) {
-                    console.log('Video ended, cleaning up...');
                     cleanupEndingVideo();
                 }
             }
@@ -1184,26 +924,19 @@ function updateEndingSequence() {
     }
 }
 
-// Add cleanup function for ending video
 function cleanupEndingVideo() {
     if (gameState.endingVideo) {
-        // Clear time update interval
         if (gameState.endingVideo.timeUpdateInterval) {
             clearInterval(gameState.endingVideo.timeUpdateInterval);
         }
         
-        // Remove UI elements
         if (gameState.endingVideo.subtitleDisplay) {
             gameState.endingVideo.subtitleDisplay.remove();
         }
         
-        // Clean up flying Picard-Q canvas
         const picardQCanvas = document.getElementById('picard-q-canvas');
-        if (picardQCanvas) {
-            picardQCanvas.remove();
-        }
+        if (picardQCanvas) picardQCanvas.remove();
         
-        // Clean up final overlay if it exists
         if (gameState.finalOverlay) {
             if (gameState.finalOverlay.container) {
                 gameState.finalOverlay.container.remove();
@@ -1211,12 +944,28 @@ function cleanupEndingVideo() {
             gameState.finalOverlay = null;
         }
         
-        // Reset ending state
         gameState.endingState = 'none';
         gameState.endingVideo = null;
-        
-        console.log('Ending video cleaned up');
     }
+}
+
+function renderFadeOverlay() {
+    let fadeOverlay = document.getElementById('fade-overlay');
+    if (!fadeOverlay) {
+        fadeOverlay = document.createElement('div');
+        fadeOverlay.id = 'fade-overlay';
+        
+        Object.assign(fadeOverlay.style, {
+            position: 'absolute', top: '0', left: '0',
+            width: '100%', height: '100%', backgroundColor: 'black',
+            zIndex: '1000', pointerEvents: 'none', transition: 'opacity 0.1s ease-out'
+        });
+        
+        const gameContainer = document.getElementById('game-container');
+        (gameContainer || document.body).appendChild(fadeOverlay);
+    }
+    
+    fadeOverlay.style.opacity = gameState.endingFadeAlpha;
 }
 
 function createEndingVideo() {
@@ -1234,6 +983,12 @@ function createEndingVideo() {
     video.autoplay = true;
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
+    
+    // Create Underwater BGM audio for ending video
+    const underwaterAudio = new Audio('assets/1-16 Underwater (BGM 2).mp3');
+    underwaterAudio.volume = 0.24; // Set volume to 24% (20% louder than 20%)
+    underwaterAudio.loop = true; // Loop the audio
+    underwaterAudio.play().catch(e => console.log('Underwater audio play failed:', e));
     
     console.log('Video element created with src:', video.src);
     
@@ -1399,10 +1154,10 @@ function createEndingVideo() {
         makingOutVideo.style.objectFit = 'cover';
         
         // Create Gnat Attack audio for making-out video
-        const gnatAudio = new Audio('assets/1-26 Gnat Attack (King Watinga).mp3');
-        gnatAudio.volume = 0.2; // Set volume to 20%
+        const gnatAudio = new Audio('assets/1-16 Underwater (BGM 2).mp3');
+        gnatAudio.volume = 0.24; // Set volume to 24% (20% louder than 20%)
         gnatAudio.loop = true; // Loop the audio
-        gnatAudio.play().catch(e => console.log('Gnat audio play failed:', e));
+        gnatAudio.play().catch(e => console.log('Underwater audio play failed:', e));
         
         // Create "THE END" text
         const endText = document.createElement('div');
@@ -1455,13 +1210,13 @@ function createEndingVideo() {
         const picardQImg = new Image();
         picardQImg.src = 'assets/picard-q.gif';
         
-        // Flying Picard-Q state (30% bigger, faster, with rotation)
+        // Flying Picard-Q state (even bigger, faster, with rotation)
         const picardQ = {
-            x: Math.random() * (window.innerWidth - 130),
-            y: Math.random() * (window.innerHeight - 130),
+            x: Math.random() * (window.innerWidth - 300),
+            y: Math.random() * (window.innerHeight - 300),
             vx: (Math.random() - 0.5) * 8, // Faster velocity (doubled)
             vy: (Math.random() - 0.5) * 8,
-            size: 104, // 30% bigger (80 * 1.3 = 104)
+            size: 300, // Even bigger (208 -> 300)
             rotation: 0,
             rotationSpeed: (Math.random() - 0.5) * 0.2 // Random rotation speed
         };
@@ -1574,60 +1329,6 @@ function createEndingVideo() {
     console.log('Video duration:', video.duration);
 }
 
-function renderFadeOverlay() {
-    console.log('renderFadeOverlay called, fadeAlpha:', gameState.endingFadeAlpha);
-    
-    // Create or get fade overlay div
-    let fadeOverlay = document.getElementById('fade-overlay');
-    if (!fadeOverlay) {
-        console.log('Creating new fade overlay div...');
-        fadeOverlay = document.createElement('div');
-        fadeOverlay.id = 'fade-overlay';
-        fadeOverlay.style.position = 'absolute';
-        fadeOverlay.style.top = '0';
-        fadeOverlay.style.left = '0';
-        fadeOverlay.style.width = '100%';
-        fadeOverlay.style.height = '100%';
-        fadeOverlay.style.backgroundColor = 'black';
-        fadeOverlay.style.zIndex = '1000';
-        fadeOverlay.style.pointerEvents = 'none';
-        fadeOverlay.style.transition = 'opacity 0.1s ease-out';
-        
-        // Add to game container
-        const gameContainer = document.getElementById('game-container');
-        if (gameContainer) {
-            gameContainer.appendChild(fadeOverlay);
-            console.log('Added fade overlay to game container');
-        } else {
-            document.body.appendChild(fadeOverlay);
-            console.log('Added fade overlay to body');
-        }
-        
-        console.log('Created fade overlay div with styles:', {
-            position: fadeOverlay.style.position,
-            top: fadeOverlay.style.top,
-            left: fadeOverlay.style.left,
-            width: fadeOverlay.style.width,
-            height: fadeOverlay.style.height,
-            backgroundColor: fadeOverlay.style.backgroundColor,
-            zIndex: fadeOverlay.style.zIndex
-        });
-    } else {
-        console.log('Using existing fade overlay div');
-    }
-    
-    // Set opacity based on fade alpha
-    fadeOverlay.style.opacity = gameState.endingFadeAlpha;
-    
-    console.log('Fade overlay opacity set to:', gameState.endingFadeAlpha);
-    console.log('Fade overlay element:', fadeOverlay);
-    console.log('Fade overlay computed styles:', {
-        opacity: window.getComputedStyle(fadeOverlay).opacity,
-        display: window.getComputedStyle(fadeOverlay).display,
-        visibility: window.getComputedStyle(fadeOverlay).visibility
-    });
-}
-
 // Phaser config
 const config = {
     type: Phaser.WEBGL,
@@ -1642,9 +1343,7 @@ const config = {
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
     input: {
-        keyboard: {
-            target: window
-        },
+        keyboard: { target: window },
         mouse: true,
         touch: false
     }
@@ -1653,57 +1352,47 @@ const config = {
 // Initialize everything
 let game;
 
-// Simple initialization - no waiting for load event
-console.log('Starting initialization...');
-
-// Check if Three.js loaded
+// Initialize Three.js and Phaser
 if (typeof THREE === 'undefined') {
     console.error('THREE.js not loaded!');
 } else {
     console.log('THREE.js loaded successfully');
-    // Initialize Three.js first
     initThreeJS();
 }
 
-// Check if Phaser loaded  
 if (typeof Phaser === 'undefined') {
     console.error('Phaser not loaded!');
 } else {
     console.log('Phaser loaded successfully');
-    // Then Phaser for input
     game = new Phaser.Game(config);
-    
-    // Wait a frame for Phaser to initialize
-    setTimeout(() => {
-        const inputScene = game.scene.getScene('InputScene');
-        if (inputScene) {
-            console.log('Input scene created successfully');
-            console.log('WASD keys:', inputScene.wasd);
-            console.log('Cursor keys:', inputScene.cursors);
-        } else {
-            console.error('Input scene not found!');
-        }
-    }, 100);
 }
 
-// Initialize the game
-console.log('Initializing Picard Quest...');
+// Initialize intro sequence
+function initIntroSequence() {
+    gameState.starLines = [];
+    for (let i = 0; i < 50; i++) {
+        gameState.starLines.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            speed: 2 + Math.random() * 8,
+            length: 20 + Math.random() * 60,
+            alpha: 0.3 + Math.random() * 0.7
+        });
+    }
+}
 
-// Wait for DOM to be ready before starting intro
+// Start game when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
         initIntroSequence();
         animate();
     });
 } else {
-    // DOM is already ready
     initIntroSequence();
     animate();
 }
 
-console.log('Game initialization complete!');
-
-// Handle window resize
+// Event listeners
 window.addEventListener('resize', () => {
     if (camera && renderer) {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -1715,12 +1404,10 @@ window.addEventListener('resize', () => {
     }
 });
 
-// Global keyboard event listeners
 window.addEventListener('keydown', (event) => {
     const key = event.key.toUpperCase();
     if (keyboardState.hasOwnProperty(key)) {
         keyboardState[key] = true;
-        console.log('Key pressed:', key);
     }
 });
 
@@ -1728,45 +1415,15 @@ window.addEventListener('keyup', (event) => {
     const key = event.key.toUpperCase();
     if (keyboardState.hasOwnProperty(key)) {
         keyboardState[key] = false;
-        console.log('Key released:', key);
     }
 });
 
-// Global click event listener for projectile
-window.addEventListener('click', (event) => {
-    console.log('Click detected at:', event.clientX, event.clientY);
-    
-    // Create projectile regardless of pointer lock state
-    console.log('Creating projectile...');
+window.addEventListener('click', () => {
     createProjectile();
-    console.log('Projectile triggered by click');
 });
 
-// Global click handler for intro sequence
-document.addEventListener('click', function(event) {
+document.addEventListener('click', (event) => {
     if (gameState.introState === 'waiting') {
         gameState.introState = 'fading';
     }
 });
-
-// Initialize intro sequence
-function initIntroSequence() {
-    console.log('Initializing intro sequence...');
-    
-    // Create star lines for space travel effect
-    gameState.starLines = [];
-    for (let i = 0; i < 50; i++) {
-        gameState.starLines.push({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            speed: 2 + Math.random() * 8,
-            length: 20 + Math.random() * 60,
-            alpha: 0.3 + Math.random() * 0.7
-        });
-    }
-    
-    console.log('Intro sequence initialized with', gameState.starLines.length, 'star lines');
-}
-
-// Initialize intro sequence
-initIntroSequence();
