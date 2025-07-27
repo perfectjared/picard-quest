@@ -213,7 +213,7 @@ function createWorld() {
 
 function playSound(soundFile) {
     const audio = new Audio(soundFile);
-    audio.volume = 0.5;
+    audio.volume = 0.2; // Set volume to 20%
     audio.play().catch(e => console.log('Audio play failed:', e));
 }
 
