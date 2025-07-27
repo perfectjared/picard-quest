@@ -1197,6 +1197,12 @@ function cleanupEndingVideo() {
             gameState.endingVideo.subtitleDisplay.remove();
         }
         
+        // Clean up flying Picard-Q canvas
+        const picardQCanvas = document.getElementById('picard-q-canvas');
+        if (picardQCanvas) {
+            picardQCanvas.remove();
+        }
+        
         // Clean up final overlay if it exists
         if (gameState.finalOverlay) {
             if (gameState.finalOverlay.container) {
@@ -1228,6 +1234,95 @@ function createEndingVideo() {
     video.autoplay = true;
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
+    
+    // Create Gnat Attack audio
+    const gnatAudio = new Audio('assets/1-26 Gnat Attack (King Watinga).mp3');
+    gnatAudio.volume = 0.2; // Set volume to 20%
+    gnatAudio.loop = true; // Loop the audio
+    gnatAudio.play().catch(e => console.log('Gnat audio play failed:', e));
+    
+    // Create flying Picard-Q GIF
+    const picardQCanvas = document.createElement('canvas');
+    picardQCanvas.id = 'picard-q-canvas';
+    picardQCanvas.style.position = 'absolute';
+    picardQCanvas.style.top = '0';
+    picardQCanvas.style.left = '0';
+    picardQCanvas.style.width = '100%';
+    picardQCanvas.style.height = '100%';
+    picardQCanvas.style.zIndex = '1001';
+    picardQCanvas.style.pointerEvents = 'none';
+    picardQCanvas.style.imageRendering = 'pixelated';
+    picardQCanvas.style.imageRendering = '-moz-crisp-edges';
+    picardQCanvas.style.imageRendering = 'crisp-edges';
+    
+    // Add canvas to page
+    const container = document.getElementById('game-container');
+    if (container) {
+        container.appendChild(picardQCanvas);
+    } else {
+        document.body.appendChild(picardQCanvas);
+    }
+    
+    // Set up canvas
+    const ctx = picardQCanvas.getContext('2d');
+    picardQCanvas.width = window.innerWidth;
+    picardQCanvas.height = window.innerHeight;
+    
+    // Load Picard-Q GIF
+    const picardQImg = new Image();
+    picardQImg.src = 'assets/picard-q.gif';
+    
+    // Flying Picard-Q state
+    const picardQ = {
+        x: Math.random() * (window.innerWidth - 100),
+        y: Math.random() * (window.innerHeight - 100),
+        vx: (Math.random() - 0.5) * 4, // Random velocity
+        vy: (Math.random() - 0.5) * 4,
+        size: 80 // Size of the GIF
+    };
+    
+    // Animation function for flying Picard-Q
+    const animatePicardQ = () => {
+        if (gameState.endingState !== 'video') return;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, picardQCanvas.width, picardQCanvas.height);
+        
+        // Update position
+        picardQ.x += picardQ.vx;
+        picardQ.y += picardQ.vy;
+        
+        // Bounce off edges
+        if (picardQ.x <= 0 || picardQ.x >= picardQCanvas.width - picardQ.size) {
+            picardQ.vx = -picardQ.vx;
+        }
+        if (picardQ.y <= 0 || picardQ.y >= picardQCanvas.height - picardQ.size) {
+            picardQ.vy = -picardQ.vy;
+        }
+        
+        // Keep within bounds
+        picardQ.x = Math.max(0, Math.min(picardQCanvas.width - picardQ.size, picardQ.x));
+        picardQ.y = Math.max(0, Math.min(picardQCanvas.height - picardQ.size, picardQ.y));
+        
+        // Draw Picard-Q GIF
+        if (picardQImg.complete) {
+            ctx.drawImage(picardQImg, picardQ.x, picardQ.y, picardQ.size, picardQ.size);
+        }
+        
+        // Continue animation
+        requestAnimationFrame(animatePicardQ);
+    };
+    
+    // Start animation when image loads
+    picardQImg.onload = () => {
+        animatePicardQ();
+    };
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        picardQCanvas.width = window.innerWidth;
+        picardQCanvas.height = window.innerHeight;
+    });
     
     console.log('Video element created with src:', video.src);
     
