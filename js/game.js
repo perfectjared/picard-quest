@@ -213,7 +213,7 @@ function createWorld() {
 
 function playSound(soundFile) {
     const audio = new Audio(soundFile);
-    audio.volume = 0.2; // Set volume to 20%
+    audio.volume = 0.1; // Set volume to 10% (even quieter)
     audio.play().catch(e => console.log('Audio play failed:', e));
 }
 
@@ -1241,89 +1241,6 @@ function createEndingVideo() {
     gnatAudio.loop = true; // Loop the audio
     gnatAudio.play().catch(e => console.log('Gnat audio play failed:', e));
     
-    // Create flying Picard-Q GIF
-    const picardQCanvas = document.createElement('canvas');
-    picardQCanvas.id = 'picard-q-canvas';
-    picardQCanvas.style.position = 'absolute';
-    picardQCanvas.style.top = '0';
-    picardQCanvas.style.left = '0';
-    picardQCanvas.style.width = '100%';
-    picardQCanvas.style.height = '100%';
-    picardQCanvas.style.zIndex = '1001';
-    picardQCanvas.style.pointerEvents = 'none';
-    picardQCanvas.style.imageRendering = 'pixelated';
-    picardQCanvas.style.imageRendering = '-moz-crisp-edges';
-    picardQCanvas.style.imageRendering = 'crisp-edges';
-    
-    // Add canvas to page
-    const container = document.getElementById('game-container');
-    if (container) {
-        container.appendChild(picardQCanvas);
-    } else {
-        document.body.appendChild(picardQCanvas);
-    }
-    
-    // Set up canvas
-    const ctx = picardQCanvas.getContext('2d');
-    picardQCanvas.width = window.innerWidth;
-    picardQCanvas.height = window.innerHeight;
-    
-    // Load Picard-Q GIF
-    const picardQImg = new Image();
-    picardQImg.src = 'assets/picard-q.gif';
-    
-    // Flying Picard-Q state
-    const picardQ = {
-        x: Math.random() * (window.innerWidth - 100),
-        y: Math.random() * (window.innerHeight - 100),
-        vx: (Math.random() - 0.5) * 4, // Random velocity
-        vy: (Math.random() - 0.5) * 4,
-        size: 80 // Size of the GIF
-    };
-    
-    // Animation function for flying Picard-Q
-    const animatePicardQ = () => {
-        if (gameState.endingState !== 'video') return;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, picardQCanvas.width, picardQCanvas.height);
-        
-        // Update position
-        picardQ.x += picardQ.vx;
-        picardQ.y += picardQ.vy;
-        
-        // Bounce off edges
-        if (picardQ.x <= 0 || picardQ.x >= picardQCanvas.width - picardQ.size) {
-            picardQ.vx = -picardQ.vx;
-        }
-        if (picardQ.y <= 0 || picardQ.y >= picardQCanvas.height - picardQ.size) {
-            picardQ.vy = -picardQ.vy;
-        }
-        
-        // Keep within bounds
-        picardQ.x = Math.max(0, Math.min(picardQCanvas.width - picardQ.size, picardQ.x));
-        picardQ.y = Math.max(0, Math.min(picardQCanvas.height - picardQ.size, picardQ.y));
-        
-        // Draw Picard-Q GIF
-        if (picardQImg.complete) {
-            ctx.drawImage(picardQImg, picardQ.x, picardQ.y, picardQ.size, picardQ.size);
-        }
-        
-        // Continue animation
-        requestAnimationFrame(animatePicardQ);
-    };
-    
-    // Start animation when image loads
-    picardQImg.onload = () => {
-        animatePicardQ();
-    };
-    
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        picardQCanvas.width = window.innerWidth;
-        picardQCanvas.height = window.innerHeight;
-    });
-    
     console.log('Video element created with src:', video.src);
     
     // Add event listeners to debug video loading
@@ -1511,6 +1428,91 @@ function createEndingVideo() {
         // Add elements to overlay
         overlayContainer.appendChild(makingOutVideo);
         overlayContainer.appendChild(endText);
+        
+        // Create flying Picard-Q GIF for making-out video
+        const picardQCanvas = document.createElement('canvas');
+        picardQCanvas.id = 'picard-q-canvas';
+        picardQCanvas.style.position = 'absolute';
+        picardQCanvas.style.top = '0';
+        picardQCanvas.style.left = '0';
+        picardQCanvas.style.width = '100%';
+        picardQCanvas.style.height = '100%';
+        picardQCanvas.style.zIndex = '1005';
+        picardQCanvas.style.pointerEvents = 'none';
+        picardQCanvas.style.imageRendering = 'pixelated';
+        picardQCanvas.style.imageRendering = '-moz-crisp-edges';
+        picardQCanvas.style.imageRendering = 'crisp-edges';
+        
+        // Add canvas to overlay
+        overlayContainer.appendChild(picardQCanvas);
+        
+        // Set up canvas
+        const ctx = picardQCanvas.getContext('2d');
+        picardQCanvas.width = window.innerWidth;
+        picardQCanvas.height = window.innerHeight;
+        
+        // Load Picard-Q GIF
+        const picardQImg = new Image();
+        picardQImg.src = 'assets/picard-q.gif';
+        
+        // Flying Picard-Q state (30% bigger, faster, with rotation)
+        const picardQ = {
+            x: Math.random() * (window.innerWidth - 130),
+            y: Math.random() * (window.innerHeight - 130),
+            vx: (Math.random() - 0.5) * 8, // Faster velocity (doubled)
+            vy: (Math.random() - 0.5) * 8,
+            size: 104, // 30% bigger (80 * 1.3 = 104)
+            rotation: 0,
+            rotationSpeed: (Math.random() - 0.5) * 0.2 // Random rotation speed
+        };
+        
+        // Animation function for flying Picard-Q
+        const animatePicardQ = () => {
+            // Clear canvas
+            ctx.clearRect(0, 0, picardQCanvas.width, picardQCanvas.height);
+            
+            // Update position
+            picardQ.x += picardQ.vx;
+            picardQ.y += picardQ.vy;
+            
+            // Update rotation
+            picardQ.rotation += picardQ.rotationSpeed;
+            
+            // Bounce off edges
+            if (picardQ.x <= 0 || picardQ.x >= picardQCanvas.width - picardQ.size) {
+                picardQ.vx = -picardQ.vx;
+            }
+            if (picardQ.y <= 0 || picardQ.y >= picardQCanvas.height - picardQ.size) {
+                picardQ.vy = -picardQ.vy;
+            }
+            
+            // Keep within bounds
+            picardQ.x = Math.max(0, Math.min(picardQCanvas.width - picardQ.size, picardQ.x));
+            picardQ.y = Math.max(0, Math.min(picardQCanvas.height - picardQ.size, picardQ.y));
+            
+            // Draw Picard-Q GIF with rotation
+            if (picardQImg.complete) {
+                ctx.save();
+                ctx.translate(picardQ.x + picardQ.size/2, picardQ.y + picardQ.size/2);
+                ctx.rotate(picardQ.rotation);
+                ctx.drawImage(picardQImg, -picardQ.size/2, -picardQ.size/2, picardQ.size, picardQ.size);
+                ctx.restore();
+            }
+            
+            // Continue animation
+            requestAnimationFrame(animatePicardQ);
+        };
+        
+        // Start animation when image loads
+        picardQImg.onload = () => {
+            animatePicardQ();
+        };
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            picardQCanvas.width = window.innerWidth;
+            picardQCanvas.height = window.innerHeight;
+        });
         
         // Add overlay to page
         const gameContainer = document.getElementById('game-container');
