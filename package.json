@@ -11,7 +11,6 @@
     "http-server": "^14.1.1"
   },
   "dependencies": {
-    "phaser": "^3.70.0",
-    "pngjs": "^7.0.0"
+    "phaser": "^3.70.0"
   }
 }
