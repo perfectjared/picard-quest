@@ -1235,12 +1235,6 @@ function createEndingVideo() {
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
     
-    // Create Gnat Attack audio
-    const gnatAudio = new Audio('assets/1-26 Gnat Attack (King Watinga).mp3');
-    gnatAudio.volume = 0.2; // Set volume to 20%
-    gnatAudio.loop = true; // Loop the audio
-    gnatAudio.play().catch(e => console.log('Gnat audio play failed:', e));
-    
     console.log('Video element created with src:', video.src);
     
     // Add event listeners to debug video loading
@@ -1403,6 +1397,12 @@ function createEndingVideo() {
         makingOutVideo.style.width = '100%';
         makingOutVideo.style.height = '100%';
         makingOutVideo.style.objectFit = 'cover';
+        
+        // Create Gnat Attack audio for making-out video
+        const gnatAudio = new Audio('assets/1-26 Gnat Attack (King Watinga).mp3');
+        gnatAudio.volume = 0.2; // Set volume to 20%
+        gnatAudio.loop = true; // Loop the audio
+        gnatAudio.play().catch(e => console.log('Gnat audio play failed:', e));
         
         // Create "THE END" text
         const endText = document.createElement('div');
