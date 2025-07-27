@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picard Quest - First Person Dungeon Crawler</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            filter: contrast(1.2) brightness(0.9);
+        }
+        
+        #phaser-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: auto;
+        }
+        
+        #intro-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 5;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            pointer-events: none;
+            display: none;
+        }
+
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            z-index: 3;
+            pointer-events: none;
+            display: block;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #ff0000;
+        }
+        
+        #crosshair::before {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+        
+        #crosshair::after {
+            left: 50%;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            transform: translateX(-50%);
+        }
+        
+        #weapon-sprite {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+            height: 48vh; /* Increased from 24vh to 48vh (twice as big) */
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            user-select: none;
+        }
+        
+        #shotgun-image {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+        
+        #picard-portrait {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 10;
+            pointer-events: none;
+            height: 48vh; /* Increased from 24vh to 48vh (twice as big) */
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            user-select: none;
+        }
+        
+        #picard-image {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="three-canvas"></canvas>
+        <canvas id="intro-canvas"></canvas>
+        <div id="crosshair"></div>
+        <div id="weapon-sprite">
+            <img src="assets/doom-shotgun.png" alt="Shotgun" id="shotgun-image">
+        </div>
+        <div id="picard-portrait">
+            <img src="assets/picard-portrait.gif" alt="Picard" id="picard-image">
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script src="js/game.js?v=2"></script>
+</body>
+</html>

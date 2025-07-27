@@ -1,0 +1,201 @@
+{
+  "extractionDate": "2025-07-27T00:28:45.515Z",
+  "totalTextures": 11,
+  "totalSounds": 37,
+  "textures": [
+    {
+      "name": "DOOR",
+      "size": 10917
+    },
+    {
+      "name": "DOORHOL",
+      "size": 24168
+    },
+    {
+      "name": "D_DOOR1",
+      "size": 1027
+    },
+    {
+      "name": "D_DOOR2",
+      "size": 993
+    },
+    {
+      "name": "D_DOOR3",
+      "size": 749
+    },
+    {
+      "name": "D_DOOR4",
+      "size": 1492
+    },
+    {
+      "name": "D_DOOR5",
+      "size": 361
+    },
+    {
+      "name": "D_DOOR6",
+      "size": 1513
+    },
+    {
+      "name": "D_DOOR7",
+      "size": 992
+    },
+    {
+      "name": "SKYWALL",
+      "size": 7407
+    },
+    {
+      "name": "W_WOOD1",
+      "size": 1923
+    }
+  ],
+  "sounds": [
+    {
+      "name": "DOOR",
+      "size": 10917
+    },
+    {
+      "name": "DOORHOL",
+      "size": 24168
+    },
+    {
+      "name": "DSBFG",
+      "size": 34945
+    },
+    {
+      "name": "DSDBCLS",
+      "size": 7882
+    },
+    {
+      "name": "DSDBLOAD",
+      "size": 7882
+    },
+    {
+      "name": "DSDBOPN",
+      "size": 7882
+    },
+    {
+      "name": "DSDSHTGN",
+      "size": 10520
+    },
+    {
+      "name": "DSFIRXPL",
+      "size": 23025
+    },
+    {
+      "name": "DSNOWAY",
+      "size": 8563
+    },
+    {
+      "name": "DSPISTOL",
+      "size": 10520
+    },
+    {
+      "name": "DSPLASMA",
+      "size": 23025
+    },
+    {
+      "name": "DSPODTH1",
+      "size": 36037
+    },
+    {
+      "name": "DSPODTH2",
+      "size": 71761
+    },
+    {
+      "name": "DSPODTH3",
+      "size": 105854
+    },
+    {
+      "name": "DSPOPAIN",
+      "size": 36037
+    },
+    {
+      "name": "DSPOSIT1",
+      "size": 41915
+    },
+    {
+      "name": "DSPOSIT2",
+      "size": 71761
+    },
+    {
+      "name": "DSPOSIT3",
+      "size": 41915
+    },
+    {
+      "name": "DSRLAUNC",
+      "size": 12624
+    },
+    {
+      "name": "DSSAWFUL",
+      "size": 6394
+    },
+    {
+      "name": "DSSAWHIT",
+      "size": 4787
+    },
+    {
+      "name": "DSSAWIDL",
+      "size": 2962
+    },
+    {
+      "name": "DSSAWUP",
+      "size": 30931
+    },
+    {
+      "name": "DSSHOTGN",
+      "size": 10520
+    },
+    {
+      "name": "DSSSDTH",
+      "size": 36037
+    },
+    {
+      "name": "DSSSSIT",
+      "size": 105854
+    },
+    {
+      "name": "DSTELEPT",
+      "size": 29826
+    },
+    {
+      "name": "D_DOOR1",
+      "size": 1027
+    },
+    {
+      "name": "D_DOOR2",
+      "size": 993
+    },
+    {
+      "name": "D_DOOR3",
+      "size": 749
+    },
+    {
+      "name": "D_DOOR4",
+      "size": 1492
+    },
+    {
+      "name": "D_DOOR5",
+      "size": 361
+    },
+    {
+      "name": "D_DOOR6",
+      "size": 1513
+    },
+    {
+      "name": "D_DOOR7",
+      "size": 992
+    },
+    {
+      "name": "MGUNA0",
+      "size": 1354
+    },
+    {
+      "name": "MUSIC",
+      "size": 1
+    },
+    {
+      "name": "SOUND",
+      "size": 1
+    }
+  ]
+}

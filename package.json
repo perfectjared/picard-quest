@@ -1,0 +1,17 @@
+{
+  "name": "picard-quest",
+  "version": "1.0.0",
+  "description": "A Three.js first-person dungeon crawler with Phaser input handling",
+  "main": "index.html",
+  "scripts": {
+    "dev": "http-server -p 8080 -o",
+    "start": "http-server -p 8080"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "phaser": "^3.70.0",
+    "pngjs": "^7.0.0"
+  }
+}
