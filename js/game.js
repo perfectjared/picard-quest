@@ -1090,13 +1090,13 @@ function createEndingVideo() {
         { start: 4, end: 8, text: "finall. no more q. damn im horny" },
         { start: 9, end: 17, text: "computer. take me back to my house. gona crank my hog ;-)" },
         { start: 31, end: 38, text: "what the fuck. what the hell. how am i supposed to jack off here. what the hell" },
-        { start: 41, end: 45, text: "if you think about it gaming is the same as jacking off" },
+        { start: 41, end: 45, text: "if you think about it, gaming is the same as jacking off" },
         { start: 47, end: 51, text: "you seemed to have a good time blasting me back there picard" },
-        { start: 52, end: 57, text: "are you as fuckingn horny as i am?? i know you are i am god" },
+        { start: 52, end: 57, text: "are you as horny as i am, picard?? i know you are because i am god" },
         { start: 60, end: 69, text: "lets do this picard. your gonna blast me. penisally that is. sex style" },
-        { start: 83, end: 89, text: "listen dude imagine how good sex with me would be. i can do whatever. i can become a mariachi man" },
-        { start: 91, end: 95, text: "i can become a robin hood, or like whatever. any fictional or cultural thing." },
-        { start: 101, end: 108, text: "i can tell your horny dude come on. you were yelling about jacking off a second ago" }
+        { start: 83, end: 89, text: "imagine how good sex with me would be picard. i can do anything. i can become a mariachi man, anything" },
+        { start: 91, end: 95, text: "i can become a robin hood, whatever. any fictional or cultural costume guy." },
+        { start: 99, end: 108, text: "give in picard. you know that you want to blast me. one way or another" }
     ];
     
     // Function to update subtitles
