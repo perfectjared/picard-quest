@@ -1224,7 +1224,7 @@ function createEndingVideo() {
     const video = document.createElement('video');
     video.src = 'assets/ending-video.mp4';
     video.loop = false; // Don't loop - just stop at the end
-    video.muted = false;
+    video.muted = true; // Mute the ending video
     video.autoplay = true;
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
@@ -1384,7 +1384,7 @@ function createEndingVideo() {
         const makingOutVideo = document.createElement('video');
         makingOutVideo.src = 'assets/making-out.mp4';
         makingOutVideo.loop = true; // This video should replay
-        makingOutVideo.muted = false;
+        makingOutVideo.muted = true; // Mute the making-out video
         makingOutVideo.autoplay = true;
         makingOutVideo.crossOrigin = 'anonymous';
         makingOutVideo.playsInline = true;
