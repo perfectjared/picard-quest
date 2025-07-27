@@ -61,6 +61,10 @@ const gameState = {
     endingState: 'none', // 'none', 'fading', 'video'
     endingFadeAlpha: 0.0,
     endingVideo: null,
+    
+    // Q sound system
+    qSoundTimer: 0, // Timer for Q sound clips
+    qSoundInterval: 180 // 3 seconds at 60fps
 };
 
 // Global keyboard state
@@ -389,6 +393,23 @@ function openTunnel() {
 }
 
 function updateEnemies() {
+    // Update Q sound timer
+    gameState.qSoundTimer++;
+    if (gameState.qSoundTimer >= gameState.qSoundInterval) {
+        gameState.qSoundTimer = 0;
+        
+        // Play random Q sound clip
+        const qSounds = [
+            'assets/Q _I suggest you change attitude_.WAV',
+            'assets/Q _Savage life forms_.WAV',
+            'assets/Q _So be it fools_.WAV',
+            'assets/Q _Your time is up captain_.WAV'
+        ];
+        
+        const randomSound = qSounds[Math.floor(Math.random() * qSounds.length)];
+        playSound(randomSound);
+    }
+    
     console.log('Updating', gameState.enemies.length, 'enemies');
     gameState.enemies.forEach((enemyData, index) => {
         const enemy = enemyData.mesh;
